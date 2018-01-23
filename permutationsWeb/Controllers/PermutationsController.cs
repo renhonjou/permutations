@@ -36,32 +36,37 @@ namespace permutationsWeb.Controllers
             var result = new List<PermutationsResponse>();
             foreach(var str in request.Data)
             {
-                var cachedRequest = this._permutationsRepository.Get(str);
-                if(cachedRequest != null)
-                {
-                    var response = new PermutationsResponse
-                    {
-                        Input = str,
-                        Seconds = cachedRequest.Seconds,
-                        Permutations = JsonHelper.Deserialize<String[]>(cachedRequest.PermutationsJson)
-                    };
-                    result.Add(response);
-                    continue;
-                }
-
-                var watch = Stopwatch.StartNew();
-                var permutations = PermutationsService.GetPermutations(str);
-                watch.Stop();
-
-                result.Add(new PermutationsResponse {
-                    Input = str,
-                    Seconds = watch.ElapsedMilliseconds / 1000.0,
-                    Permutations = permutations
-                });
-                this._permutationsRepository.Add(str, JsonHelper.Serialize(permutations), watch.ElapsedMilliseconds / 1000.0);
+                result.Add(this.GetPermutationsResponse(str));
             }
             
             return Json(new { success = true, data = result });
+        }
+
+        private PermutationsResponse GetPermutationsResponse(String request)
+        {
+            var cachedRequest = this._permutationsRepository.Get(request);
+            if (cachedRequest != null)
+            {
+                return new PermutationsResponse
+                {
+                    Input = request,
+                    Seconds = cachedRequest.Seconds,
+                    Permutations = JsonHelper.Deserialize<String[]>(cachedRequest.PermutationsJson)
+                };
+            }
+
+            var watch = Stopwatch.StartNew();
+            var permutations = PermutationsService.GetPermutations(request);
+            watch.Stop();
+
+            this._permutationsRepository.Add(request, JsonHelper.Serialize(permutations), watch.ElapsedMilliseconds / 1000.0);
+            return new PermutationsResponse
+            {
+                Input = request,
+                Seconds = watch.ElapsedMilliseconds / 1000.0,
+                Permutations = permutations
+            };
+            
         }
     }
 }
